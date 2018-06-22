@@ -124,6 +124,9 @@ prompt_pure_preprompt_render() {
 	# Initialize the preprompt array.
 	local -a preprompt_parts
 
+	# Username and machine, if applicable.
+	[[ -n $prompt_pure_state[username] ]] && preprompt_parts+=('${prompt_pure_state[username]}')
+
 	# Set the path.
 	preprompt_parts+=('%B%F{blue}%~%f%b')
 
@@ -137,8 +140,6 @@ prompt_pure_preprompt_render() {
 		preprompt_parts+=('%F{cyan}${prompt_pure_git_arrows}%f')
 	fi
 
-	# Username and machine, if applicable.
-	[[ -n $prompt_pure_state[username] ]] && preprompt_parts+=('${prompt_pure_state[username]}')
 	# Execution time.
 	[[ -n $prompt_pure_cmd_exec_time ]] && preprompt_parts+=('%F{yellow}${prompt_pure_cmd_exec_time}%f')
 
@@ -514,8 +515,10 @@ prompt_pure_state_setup() {
 		unset MATCH MBEGIN MEND
 	fi
 
+	# show username
+	username='%B%F{green}%n%f%b'
 	# show username@host if logged in through SSH
-	[[ -n $ssh_connection ]] && username='%F{242}%n@%m%f'
+	[[ -n $ssh_connection ]] && username='%B%F{green}%n@%m%f%b'
 
 	# show username@host if root, with username in white
 	[[ $UID -eq 0 ]] && username='%F{white}%n%f%F{242}@%m%f'
