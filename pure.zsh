@@ -155,6 +155,7 @@ prompt_pure_preprompt_render() {
 	# Construct the new prompt with a clean preprompt.
 	local -ah ps1
 	ps1=(
+		'%F{white}╭─%f'
 		${(j. .)preprompt_parts}  # Join parts, space separated.
 		$prompt_newline           # Separate preprompt and prompt.
 		$cleaned_ps1
@@ -561,7 +562,7 @@ prompt_pure_setup() {
 	PROMPT='%(12V.%F{242}%12v%f .)'
 
 	# prompt turns red if the previous command didn't exit with 0
-	PROMPT+='%(?.%F{white}.%F{red})%B$%b%f '
+	PROMPT+='%F{white}╰─%f%(?.%F{white}.%F{red})%B$%b%f '
 
 	# Store prompt expansion symbols for in-place expansion via (%). For
 	# some reason it does not work without storing them in a variable first.
