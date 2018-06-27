@@ -137,7 +137,7 @@ prompt_pure_preprompt_render() {
 	fi
 	# Git pull/push arrows.
 	if [[ -n $prompt_pure_git_arrows ]]; then
-		preprompt_parts+=('%F{cyan}${prompt_pure_git_arrows}%f')
+		preprompt_parts+=('%B%F{cyan}${prompt_pure_git_arrows}%f%b')
 	fi
 
 	# Execution time.
@@ -380,8 +380,8 @@ prompt_pure_check_git_arrows() {
 	setopt localoptions noshwordsplit
 	local arrows left=${1:-0} right=${2:-0}
 
-	(( right > 0 )) && arrows+=${PURE_GIT_DOWN_ARROW:-⇣}
-	(( left > 0 )) && arrows+=${PURE_GIT_UP_ARROW:-⇡}
+	(( right > 0 )) && arrows+=⇣
+	(( left > 0 )) && arrows+=⇡
 
 	[[ -n $arrows ]] || return
 	typeset -g REPLY=$arrows
