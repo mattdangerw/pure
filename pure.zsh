@@ -47,9 +47,7 @@ prompt_pure_check_cmd_exec_time() {
 	integer elapsed
 	(( elapsed = EPOCHSECONDS - ${prompt_pure_cmd_timestamp:-$EPOCHSECONDS} ))
 	typeset -g prompt_pure_cmd_exec_time=
-	(( elapsed > ${PURE_CMD_MAX_EXEC_TIME:-5} )) && {
-		prompt_pure_human_time_to_var $elapsed "prompt_pure_cmd_exec_time"
-	}
+	prompt_pure_human_time_to_var $elapsed "prompt_pure_cmd_exec_time"
 }
 
 prompt_pure_set_title() {
@@ -96,11 +94,6 @@ prompt_pure_preexec() {
 
 	# shows the current dir and executed command in the title while a process is active
 	prompt_pure_set_title 'ignore-escape' "$PWD:t: $2"
-
-	# Disallow python virtualenv from updating the prompt, set it to 12 if
-	# untouched by the user to indicate that Pure modified it. Here we use
-	# magic number 12, same as in psvar.
-	export VIRTUAL_ENV_DISABLE_PROMPT=${VIRTUAL_ENV_DISABLE_PROMPT:-12}
 }
 
 # string length ignoring ansi escapes
@@ -133,15 +126,8 @@ prompt_pure_preprompt_render() {
 	# Add git branch and dirty status info.
 	typeset -gA prompt_pure_vcs_info
 	if [[ -n $prompt_pure_vcs_info[branch] ]]; then
-		preprompt_parts+=("%F{$git_color}"'‹${prompt_pure_vcs_info[branch]}${prompt_pure_git_dirty}›%f')
+		preprompt_parts+=("%F{$git_color}"'${prompt_pure_git_dirty}${prompt_pure_vcs_info[branch]}${prompt_pure_git_arrows}%f')
 	fi
-	# Git pull/push arrows.
-	if [[ -n $prompt_pure_git_arrows ]]; then
-		preprompt_parts+=('%B%F{cyan}${prompt_pure_git_arrows}%f%b')
-	fi
-
-	# Execution time.
-	[[ -n $prompt_pure_cmd_exec_time ]] && preprompt_parts+=('%F{yellow}${prompt_pure_cmd_exec_time}%f')
 
 	local cleaned_ps1=$PROMPT
 	local -H MATCH MBEGIN MEND
@@ -176,25 +162,27 @@ prompt_pure_preprompt_render() {
 }
 
 prompt_pure_precmd() {
+	local status_code=$(print -P %?)
+
 	# check exec time and store it in a variable
 	prompt_pure_check_cmd_exec_time
 	unset prompt_pure_cmd_timestamp
+
+	local cmd_stats="${prompt_pure_cmd_exec_time} ${status_code} ↵ "
+	local pad_length=$(($COLUMNS-${#cmd_stats}))
+	local pad=${(l:$pad_length:: :)}
+	if [[ $status_code == "0" ]]; then
+		cmd_stats="${pad}%F{242}${cmd_stats}%f"
+	else
+		cmd_stats="${pad}%F{red}${cmd_stats}%f"
+	fi
+	print -P $cmd_stats
 
 	# shows the full path in the title
 	prompt_pure_set_title 'expand-prompt' '%~'
 
 	# preform async git dirty check and fetch
 	prompt_pure_async_tasks
-
-	# Check if we should display the virtual env, we use a sufficiently high
-	# index of psvar (12) here to avoid collisions with user defined entries.
-	psvar[12]=
-	# When VIRTUAL_ENV_DISABLE_PROMPT is empty, it was unset by the user and
-	# Pure should take back control.
-	if [[ -n $VIRTUAL_ENV ]] && [[ -z $VIRTUAL_ENV_DISABLE_PROMPT || $VIRTUAL_ENV_DISABLE_PROMPT = 12 ]]; then
-		psvar[12]="${VIRTUAL_ENV:t}"
-		export VIRTUAL_ENV_DISABLE_PROMPT=12
-	fi
 
 	# print the preprompt
 	prompt_pure_preprompt_render "precmd"
@@ -380,8 +368,9 @@ prompt_pure_check_git_arrows() {
 	setopt localoptions noshwordsplit
 	local arrows left=${1:-0} right=${2:-0}
 
-	(( right > 0 )) && arrows+=⇣
-	(( left > 0 )) && arrows+=⇡
+	(( right > 0 )) && arrows=↓
+	(( left > 0 )) && arrows=↑
+	(( left > 0 )) && (( right > 0 )) && arrows=↕
 
 	[[ -n $arrows ]] || return
 	typeset -g REPLY=$arrows
@@ -434,7 +423,7 @@ prompt_pure_async_callback() {
 			if (( code == 0 )); then
 				unset prompt_pure_git_dirty
 			else
-				typeset -g prompt_pure_git_dirty="*"
+				typeset -g prompt_pure_git_dirty="•"
 			fi
 
 			[[ $prev_dirty != $prompt_pure_git_dirty ]] && do_render=1
@@ -558,11 +547,7 @@ prompt_pure_setup() {
 
 	prompt_pure_state_setup
 
-	# if a virtualenv is activated, display it in grey
-	PROMPT='%(12V.%F{242}%12v%f .)'
-
-	# prompt turns red if the previous command didn't exit with 0
-	PROMPT+='%F{white}╰─%f%(?.%F{white}.%F{red})%B$%b%f '
+	PROMPT='%F{white}╰─%B$%b%f '
 
 	# Store prompt expansion symbols for in-place expansion via (%). For
 	# some reason it does not work without storing them in a variable first.
