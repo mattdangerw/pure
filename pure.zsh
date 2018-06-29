@@ -123,6 +123,14 @@ prompt_pure_preprompt_render() {
 	# Set the path.
 	preprompt_parts+=('%B%F{blue}%~%f%b')
 
+	# Set up tokens
+	if [[ -n "$SSH_CLIENT" ]] || [[ -n "$SSH_TTY" ]]; then
+		preprompt_parts+=('%F{14}‹ssh›%f')
+	fi
+  if [[ -n $GIT_MODE ]]; then
+		preprompt_parts+=('%F{13}‹gm›%f')
+	fi
+
 	# Add git branch and dirty status info.
 	typeset -gA prompt_pure_vcs_info
 	if [[ -n $prompt_pure_vcs_info[branch] ]]; then
@@ -471,39 +479,6 @@ prompt_pure_async_callback() {
 
 prompt_pure_state_setup() {
 	setopt localoptions noshwordsplit
-
-	# Check SSH_CONNECTION and the current state.
-	local ssh_connection=${SSH_CONNECTION:-$PROMPT_PURE_SSH_CONNECTION}
-	local username
-	if [[ -z $ssh_connection ]] && (( $+commands[who] )); then
-		# When changing user on a remote system, the $SSH_CONNECTION
-		# environment variable can be lost, attempt detection via who.
-		local who_out
-		who_out=$(who -m 2>/dev/null)
-		if (( $? )); then
-			# Who am I not supported, fallback to plain who.
-			who_out=$(who 2>/dev/null | grep ${TTY#/dev/})
-		fi
-
-		local reIPv6='(([0-9a-fA-F]+:)|:){2,}[0-9a-fA-F]+'  # Simplified, only checks partial pattern.
-		local reIPv4='([0-9]{1,3}\.){3}[0-9]+'   # Simplified, allows invalid ranges.
-		# Here we assume two non-consecutive periods represents a
-		# hostname. This matches foo.bar.baz, but not foo.bar.
-		local reHostname='([.][^. ]+){2}'
-
-		# Usually the remote address is surrounded by parenthesis, but
-		# not on all systems (e.g. busybox).
-		local -H MATCH MBEGIN MEND
-		if [[ $who_out =~ "\(?($reIPv4|$reIPv6|$reHostname)\)?\$" ]]; then
-			ssh_connection=$MATCH
-
-			# Export variable to allow detection propagation inside
-			# shells spawned by this one (e.g. tmux does not always
-			# inherit the same tty, which breaks detection).
-			export PROMPT_PURE_SSH_CONNECTION=$ssh_connection
-		fi
-		unset MATCH MBEGIN MEND
-	fi
 
 	# show username
 	username='%B%F{green}%n%f%b'
