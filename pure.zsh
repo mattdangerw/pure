@@ -121,7 +121,7 @@ prompt_pure_preprompt_render() {
 	[[ -n $prompt_pure_state[username] ]] && preprompt_parts+=('${prompt_pure_state[username]}')
 
 	# Set the path.
-	preprompt_parts+=('%B%F{blue}%~%f%b')
+	preprompt_parts+=('%B%F{blue}%-30<…<%~%<<%f%b')
 
 	# Set up tokens
 	if [[ -n "$SSH_CLIENT" ]] || [[ -n "$SSH_TTY" ]]; then
